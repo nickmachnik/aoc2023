@@ -3,70 +3,43 @@ use std::fs::read_to_string;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+const DIGITS: [&str; 20] = [
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "zero", "one", "two", "three", "four",
+    "five", "six", "seven", "eight", "nine",
+];
+
 pub fn solve() -> SolutionPair {
     // Your solution here...
-    let sol1: u64 = solve1("./input/day2input1.txt");
-    let sol2: u64 = solve2("./input/day2input1.txt");
+    let sol1: u64 = solve1("./input/day1input1.txt");
+    let sol2: u64 = solve2("./input/day1example1.txt");
 
     (Solution::from(sol1), Solution::from(sol2))
 }
 
 fn solve2(filename: &str) -> u64 {
-    let lines = read_lines(filename);
+    // let lines = read_lines(filename);
     let mut res = 0;
-    for mut line in lines {
-        line.sort();
-        let mut line_done = false;
-        for (v1_pos, v1) in line.iter().enumerate() {
-            if line_done {
-                break;
-            }
-            for v2 in &line[v1_pos + 1..] {
-                let q = *v2 as f64 / *v1 as f64;
-                if q.fract() == 0.0 {
-                    res += q as u64;
-                    line_done = true;
-                    break;
-                }
-            }
-        }
-    }
     res
 }
 
 fn solve1(filename: &str) -> u64 {
-    let lines = read_lines(filename);
+    let lines = filter_lines(filename);
     let mut res = 0;
     for line in lines {
-        let minmax = find_min_max(&line);
-        res += minmax.max - minmax.min;
+        let calibration_code: u64 = vec![line.first().unwrap(), line.last().unwrap()]
+            .into_iter()
+            .collect::<String>()
+            .parse()
+            .unwrap();
+        res += calibration_code;
     }
     res
 }
 
-struct MinMax {
-    min: u64,
-    max: u64,
-}
-
-fn find_min_max(v: &Vec<u64>) -> MinMax {
-    let mut min = v[0];
-    let mut max = v[0];
-    for &e in v {
-        if e > max {
-            max = e;
-        } else if e < min {
-            min = e;
-        }
-    }
-    MinMax { min, max }
-}
-
-fn read_lines(filename: &str) -> Vec<Vec<u64>> {
+fn filter_lines(filename: &str) -> Vec<Vec<char>> {
     read_to_string(filename)
         .unwrap()
         .lines()
-        .map(String::from)
-        .map(|l| l.split_whitespace().map(|e| e.parse().unwrap()).collect())
+        .map(|l| l.chars().filter(|c| c.is_digit(10)).collect::<Vec<char>>())
         .collect()
 }
