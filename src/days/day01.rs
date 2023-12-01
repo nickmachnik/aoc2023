@@ -59,7 +59,6 @@ fn solve2(filename: &str) -> u64 {
                 window_start += 1;
             }
         }
-        println!("{:?}", line_digits);
         let calibration_code: u64 = vec![line_digits.first().unwrap(), line_digits.last().unwrap()]
             .into_iter()
             .collect::<String>()
