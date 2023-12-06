@@ -8,6 +8,7 @@ const NUM_MAPS: usize = 7;
 pub fn solve() -> SolutionPair {
     // Your solution here...
     let sol1: u64 = solve1("./input/day5input1.txt");
+    // let sol2: u64 = solve2("./input/day5example1.txt");
     let sol2: u64 = solve2("./input/day5input1.txt");
 
     (Solution::from(sol1), Solution::from(sol2))
@@ -20,7 +21,8 @@ fn solve1(filename: &str) -> u64 {
 
 fn solve2(filename: &str) -> u64 {
     let almanach = parse_input_lines(filename);
-    almanach.min_all_mapped_seeds()
+    almanach.min_all_mapped_seeds_range()
+    // almanach.min_all_mapped_seeds();
 }
 
 fn parse_input_lines(filename: &str) -> Almanach {
@@ -55,7 +57,40 @@ fn parse_input_lines(filename: &str) -> Almanach {
     almanach
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Copy)]
+struct Range {
+    start: u64,
+    len: u64,
+}
+
+impl Range {
+    fn end(&self) -> u64 {
+        self.start + self.len - 1
+    }
+
+    fn pre(&self, v: u64) -> Option<Range> {
+        if self.start < v {
+            return Some(Range {
+                start: self.start,
+                len: (v - self.start).min(self.end() - self.start + 1),
+            });
+        }
+        None
+    }
+
+    fn post(&self, v: u64) -> Option<Range> {
+        if self.end() > v {
+            let post_start = v.max(self.start);
+            return Some(Range {
+                start: post_start,
+                len: self.end() - post_start,
+            });
+        }
+        None
+    }
+}
+
+#[derive(Default, Debug)]
 struct Map {
     entries: Vec<MapEntry>,
 }
@@ -63,6 +98,28 @@ struct Map {
 impl Map {
     fn add(&mut self, v: MapEntry) {
         self.entries.push(v);
+    }
+
+    fn map_range_to_dst(&self, r: Range) -> Vec<Range> {
+        let mut mapped = Vec::new();
+        let mut to_map = vec![r];
+        for map_entry in &self.entries {
+            let mut leftovers = Vec::new();
+            while let Some(cr) = to_map.pop() {
+                let mut map_res = map_entry.map_range_to_dst(cr);
+                if let Some(mapped_r) = map_res.mapped {
+                    mapped.push(mapped_r);
+                }
+                leftovers.append(&mut map_res.not_mapped);
+            }
+            if leftovers.is_empty() {
+                break;
+            }
+            to_map = leftovers;
+        }
+        // add everything that was not mapped, these values are 1-1 mapped
+        mapped.append(&mut to_map);
+        mapped
     }
 
     fn map_to_dst(&self, v: u64) -> u64 {
@@ -75,6 +132,7 @@ impl Map {
     }
 }
 
+#[derive(Debug)]
 struct MapEntry {
     dst_start: u64,
     src_start: u64,
@@ -92,12 +150,55 @@ impl FromIterator<u64> for MapEntry {
     }
 }
 
+struct MapRangeResult {
+    mapped: Option<Range>,
+    not_mapped: Vec<Range>,
+}
+
 impl MapEntry {
     fn new() -> Self {
         MapEntry {
             dst_start: 0,
             src_start: 0,
             range_len: 0,
+        }
+    }
+
+    fn src_end(&self) -> u64 {
+        self.src_start + self.range_len - 1
+    }
+
+    fn map_range_to_dst(&self, r: Range) -> MapRangeResult {
+        if (r.end() >= self.src_start) & (r.start <= self.src_end()) {
+            let mapped_start = self.src_start.max(r.start);
+            let mapped_end = self.src_end().min(r.end());
+            let mapped = Range {
+                start: self.map_to_dst(mapped_start).unwrap(),
+                len: mapped_end - mapped_start + 1,
+            };
+            let mut not_mapped = Vec::new();
+            if let Some(p) = r.pre(self.src_start) {
+                not_mapped.push(p);
+            }
+            if let Some(p) = r.post(self.src_end()) {
+                not_mapped.push(p);
+            }
+            // let sum_seg_len = mapped.len + not_mapped.iter().map(|e| e.len).sum::<u64>();
+            // if sum_seg_len != r.len {
+            //     println!(
+            //         "input: {:?}, mapped: {:?}, not_mapped: {:?}, map: {:?}",
+            //         r, mapped, not_mapped, self
+            //     );
+            //     panic!();
+            // }
+            return MapRangeResult {
+                mapped: Some(mapped),
+                not_mapped,
+            };
+        }
+        MapRangeResult {
+            mapped: None,
+            not_mapped: vec![r],
         }
     }
 
@@ -134,6 +235,30 @@ impl Almanach {
             println!("at seed pair: {:?}", pair);
             for seed in pair[0]..pair[0] + pair[1] {
                 min = min.min(self.map_seed(seed));
+            }
+        }
+        min
+    }
+
+    fn min_all_mapped_seeds_range(&self) -> u64 {
+        let mut min = u64::MAX;
+        for range in self.seeds.chunks_exact(2).map(|pair| Range {
+            start: pair[0],
+            len: pair[1],
+        }) {
+            println!();
+            println!("at seed range: {:?}", range);
+            let mut mapped = vec![range];
+            for map in &self.contig_maps {
+                let mut next_mapped = Vec::new();
+                for r in &mapped {
+                    next_mapped.append(&mut map.map_range_to_dst(*r));
+                }
+                mapped = next_mapped;
+                println!("Got {:?} after map {:?}", mapped, map);
+            }
+            for r in mapped {
+                min = min.min(r.start);
             }
         }
         min
