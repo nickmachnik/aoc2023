@@ -8,7 +8,6 @@ const NUM_MAPS: usize = 7;
 pub fn solve() -> SolutionPair {
     // Your solution here...
     let sol1: u64 = solve1("./input/day5input1.txt");
-    // let sol2: u64 = solve2("./input/day5example1.txt");
     let sol2: u64 = solve2("./input/day5input1.txt");
 
     (Solution::from(sol1), Solution::from(sol2))
@@ -22,7 +21,6 @@ fn solve1(filename: &str) -> u64 {
 fn solve2(filename: &str) -> u64 {
     let almanach = parse_input_lines(filename);
     almanach.min_all_mapped_seeds_range()
-    // almanach.min_all_mapped_seeds();
 }
 
 fn parse_input_lines(filename: &str) -> Almanach {
@@ -80,10 +78,10 @@ impl Range {
 
     fn post(&self, v: u64) -> Option<Range> {
         if self.end() > v {
-            let post_start = v.max(self.start);
+            let post_start = (v + 1).max(self.start);
             return Some(Range {
                 start: post_start,
-                len: self.end() - post_start,
+                len: self.end() - post_start + 1,
             });
         }
         None
@@ -183,14 +181,6 @@ impl MapEntry {
             if let Some(p) = r.post(self.src_end()) {
                 not_mapped.push(p);
             }
-            // let sum_seg_len = mapped.len + not_mapped.iter().map(|e| e.len).sum::<u64>();
-            // if sum_seg_len != r.len {
-            //     println!(
-            //         "input: {:?}, mapped: {:?}, not_mapped: {:?}, map: {:?}",
-            //         r, mapped, not_mapped, self
-            //     );
-            //     panic!();
-            // }
             return MapRangeResult {
                 mapped: Some(mapped),
                 not_mapped,
@@ -229,25 +219,12 @@ impl Almanach {
         self.seeds.iter().map(|s| self.map_seed(*s)).collect()
     }
 
-    fn min_all_mapped_seeds(&self) -> u64 {
-        let mut min = self.map_seed(self.seeds[0]);
-        for pair in self.seeds.chunks_exact(2) {
-            println!("at seed pair: {:?}", pair);
-            for seed in pair[0]..pair[0] + pair[1] {
-                min = min.min(self.map_seed(seed));
-            }
-        }
-        min
-    }
-
     fn min_all_mapped_seeds_range(&self) -> u64 {
         let mut min = u64::MAX;
         for range in self.seeds.chunks_exact(2).map(|pair| Range {
             start: pair[0],
             len: pair[1],
         }) {
-            println!();
-            println!("at seed range: {:?}", range);
             let mut mapped = vec![range];
             for map in &self.contig_maps {
                 let mut next_mapped = Vec::new();
@@ -255,7 +232,6 @@ impl Almanach {
                     next_mapped.append(&mut map.map_range_to_dst(*r));
                 }
                 mapped = next_mapped;
-                println!("Got {:?} after map {:?}", mapped, map);
             }
             for r in mapped {
                 min = min.min(r.start);
