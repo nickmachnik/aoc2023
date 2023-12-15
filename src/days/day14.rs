@@ -14,9 +14,9 @@ pub fn solve() -> SolutionPair {
 }
 
 fn solve2(filename: &str) -> u64 {
+    let mut dish = Dish::from_file(filename);
     let mut mem: HashSet<CompMap> = HashSet::new();
     let mut loop_loads = Vec::new();
-    let mut dish = Dish::from_file(filename);
     let mut num_cycled = 0;
     let mut in_loop = false;
     let mut loop_start = 0;
