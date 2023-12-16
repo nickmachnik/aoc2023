@@ -35,7 +35,7 @@ impl Map {
         Self {
             ncol: map[0].len(),
             nrow: map.len(),
-            map: map,
+            map,
         }
     }
 
@@ -107,42 +107,6 @@ impl Map {
         )
     }
 
-    fn size(&self) -> usize {
-        self.nrow * self.ncol
-    }
-
-    fn dfs(&self, h: &HashSet<Pos>, l: &HashSet<Pos>) -> HashSet<Pos> {
-        let mut queued = h.clone();
-        let mut q: Vec<Pos> = h.clone().into_iter().collect();
-        while let Some(cn) = q.pop() {
-            for nn in self.adj_pos(cn) {
-                if !queued.contains(&nn) & !l.contains(&nn) {
-                    queued.insert(nn);
-                    q.push(nn);
-                }
-            }
-        }
-        queued
-    }
-
-    fn dfs_search(&self, start: Pos, h: &HashSet<Pos>, l: &HashSet<Pos>) -> bool {
-        let mut queued = HashSet::new();
-        let mut q: Vec<Pos> = vec![start];
-        queued.insert(start);
-        while let Some(cn) = q.pop() {
-            if h.contains(&cn) {
-                return true;
-            }
-            for nn in self.adj_pos(cn) {
-                if !queued.contains(&nn) & !l.contains(&nn) {
-                    queued.insert(nn);
-                    q.push(nn);
-                }
-            }
-        }
-        false
-    }
-
     fn dfs_count(&self, h: &HashSet<Pos>, l: &HashSet<Pos>) -> u64 {
         let mut count = 0;
         let mut queued = h.clone();
@@ -165,7 +129,7 @@ impl Map {
         let mut lhs_nodes = HashSet::new();
 
         let mut curr = self.starting_pos().expect("No starting position found?");
-        let mut prev = curr.clone();
+        let mut prev = curr;
         res.insert(curr);
         let mut arrived = false;
 
@@ -182,15 +146,11 @@ impl Map {
                 arrived = true;
             }
             res.insert(curr);
-            for o in self.node_rhs(curr, prev) {
-                if let Some(n) = o {
-                    rhs_nodes.insert(n);
-                }
+            for n in self.node_rhs(curr, prev).into_iter().flatten() {
+                rhs_nodes.insert(n);
             }
-            for o in self.node_lhs(curr, prev) {
-                if let Some(n) = o {
-                    lhs_nodes.insert(n);
-                }
+            for n in self.node_lhs(curr, prev).into_iter().flatten() {
+                lhs_nodes.insert(n);
             }
         }
         lhs_nodes = &lhs_nodes - &res;
@@ -266,7 +226,7 @@ impl Map {
     fn find_loop1(&self) -> u64 {
         let mut num_steps = 0;
         let mut curr = self.starting_pos().expect("No starting position found?");
-        let mut prev = curr.clone();
+        let mut prev = curr;
         let mut arrived = false;
 
         while !arrived {
@@ -349,7 +309,7 @@ impl Map {
     }
 
     fn neighbors_s(&self, p: Pos) -> Vec<Pos> {
-        vec![
+        [
             self.neighbor_below(p),
             self.neighbor_right(p),
             self.neighbor_above(p),
@@ -361,42 +321,42 @@ impl Map {
     }
 
     fn neighbors_f(&self, p: Pos) -> Vec<Pos> {
-        vec![self.neighbor_below(p), self.neighbor_right(p)]
+        [self.neighbor_below(p), self.neighbor_right(p)]
             .iter()
             .filter_map(|e| *e)
             .collect()
     }
 
     fn neighbors_7(&self, p: Pos) -> Vec<Pos> {
-        vec![self.neighbor_below(p), self.neighbor_left(p)]
+        [self.neighbor_below(p), self.neighbor_left(p)]
             .iter()
             .filter_map(|e| *e)
             .collect()
     }
 
     fn neighbors_j(&self, p: Pos) -> Vec<Pos> {
-        vec![self.neighbor_above(p), self.neighbor_left(p)]
+        [self.neighbor_above(p), self.neighbor_left(p)]
             .iter()
             .filter_map(|e| *e)
             .collect()
     }
 
     fn neighbors_l(&self, p: Pos) -> Vec<Pos> {
-        vec![self.neighbor_above(p), self.neighbor_right(p)]
+        [self.neighbor_above(p), self.neighbor_right(p)]
             .iter()
             .filter_map(|e| *e)
             .collect()
     }
 
     fn neighbors_pipe_vertical(&self, p: Pos) -> Vec<Pos> {
-        vec![self.neighbor_left(p), self.neighbor_right(p)]
+        [self.neighbor_left(p), self.neighbor_right(p)]
             .iter()
             .filter_map(|e| *e)
             .collect()
     }
 
     fn neighbors_pipe_horizontal(&self, p: Pos) -> Vec<Pos> {
-        vec![self.neighbor_above(p), self.neighbor_below(p)]
+        [self.neighbor_above(p), self.neighbor_below(p)]
             .iter()
             .filter_map(|e| *e)
             .collect()

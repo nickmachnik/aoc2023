@@ -52,7 +52,7 @@ impl Universe {
     fn galaxy_positions(&self) -> Vec<Pos> {
         let mut res = Vec::new();
         for (i, row) in self.map.iter().enumerate() {
-            for (j, e) in (&row).iter().enumerate() {
+            for (j, e) in (row).iter().enumerate() {
                 if *e == '#' {
                     res.push((i, j))
                 }
@@ -62,28 +62,28 @@ impl Universe {
     }
 
     fn expansion_between_rows(&self, a: usize, b: usize) -> usize {
-        let mut a = a.clone();
-        let mut b = b.clone();
+        let mut a = a;
+        let mut b = b;
         if a > b {
             std::mem::swap(&mut a, &mut b);
         }
         self.empty_rows
             .iter()
             .filter(|i| (a < **i) & (**i < b))
-            .map(|e| *e)
+            .copied()
             .count()
     }
 
     fn expansion_between_cols(&self, a: usize, b: usize) -> usize {
-        let mut a = a.clone();
-        let mut b = b.clone();
+        let mut a = a;
+        let mut b = b;
         if a > b {
             std::mem::swap(&mut a, &mut b);
         }
         self.empty_cols
             .iter()
             .filter(|i| (a < **i) & (**i < b))
-            .map(|e| *e)
+            .copied()
             .count()
     }
 

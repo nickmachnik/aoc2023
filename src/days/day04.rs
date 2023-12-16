@@ -42,7 +42,7 @@ fn solve2(filename: &str) -> u64 {
 fn get_cards(filename: &str) -> Vec<Vec<Vec<u64>>> {
     load_lines(filename)
         .iter()
-        .map(|s| s.split(": ").skip(1).next().unwrap())
+        .map(|s| s.split(": ").nth(1).unwrap())
         .map(|s| {
             s.split(" | ")
                 .map(|s| {

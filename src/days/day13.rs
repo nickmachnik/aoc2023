@@ -58,10 +58,8 @@ impl Map {
     fn find_sym_vertical_smudge(&self) -> Option<u64> {
         for (sym_ix, w) in self.map.windows(2).enumerate() {
             let d = hd(&w[0], &w[1]);
-            if d <= 1 {
-                if self.valid_vertical_sym_smudge(sym_ix, d) {
-                    return Some(sym_ix as u64 + 1);
-                }
+            if d <= 1 && self.valid_vertical_sym_smudge(sym_ix, d) {
+                return Some(sym_ix as u64 + 1);
             }
         }
         None
@@ -91,10 +89,8 @@ impl Map {
 
     fn find_sym_vertical(&self) -> Option<u64> {
         for (sym_ix, w) in self.map.windows(2).enumerate() {
-            if w[0] == w[1] {
-                if self.valid_vertical_sym(sym_ix) {
-                    return Some(sym_ix as u64 + 1);
-                }
+            if w[0] == w[1] && self.valid_vertical_sym(sym_ix) {
+                return Some(sym_ix as u64 + 1);
             }
         }
         None
@@ -108,10 +104,8 @@ impl Map {
         };
         for a_ix in start_ix..sym_ix {
             let b_ix = sym_ix + (sym_ix - a_ix) + 1;
-            if b_ix < self.nrows() {
-                if self.map[a_ix] != self.map[b_ix] {
-                    return false;
-                }
+            if b_ix < self.nrows() && self.map[a_ix] != self.map[b_ix] {
+                return false;
             }
         }
         true

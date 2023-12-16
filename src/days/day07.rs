@@ -77,7 +77,7 @@ impl HandType {
                     max_count = *v;
                 }
             }
-            if let Some(joker_count) = (&mut counts).get(&1) {
+            if let Some(joker_count) = (counts).get(&1) {
                 *counts.get_mut(&max_card).unwrap() += *joker_count;
                 counts.remove(&1);
             }
@@ -131,7 +131,7 @@ struct Hand {
 impl Hand {
     fn from_line(line: &str) -> Self {
         let fields: Vec<&str> = line.split_ascii_whitespace().collect();
-        let cards = fields[0].chars().map(|c| card_to_val(c)).collect();
+        let cards = fields[0].chars().map(card_to_val).collect();
         let bid = fields[1].parse().unwrap();
         let t = HandType::from_cards(&cards);
         Self { cards, bid, t }
@@ -139,7 +139,7 @@ impl Hand {
 
     fn from_line2(line: &str) -> Self {
         let fields: Vec<&str> = line.split_ascii_whitespace().collect();
-        let cards = fields[0].chars().map(|c| card_to_val2(c)).collect();
+        let cards = fields[0].chars().map(card_to_val2).collect();
         let bid = fields[1].parse().unwrap();
         let t = HandType::from_cards2(&cards);
         Self { cards, bid, t }
@@ -165,7 +165,7 @@ impl Ord for Hand {
         if self.t == other.t {
             return self.cards.cmp(&other.cards);
         }
-        return self.t.cmp(&other.t);
+        self.t.cmp(&other.t)
     }
 }
 
@@ -197,7 +197,7 @@ fn load_lines(filename: &str) -> Vec<Hand> {
     read_to_string(filename)
         .unwrap()
         .lines()
-        .map(|l| Hand::from_line(l))
+        .map(Hand::from_line)
         .collect()
 }
 
@@ -205,6 +205,6 @@ fn load_lines2(filename: &str) -> Vec<Hand> {
     read_to_string(filename)
         .unwrap()
         .lines()
-        .map(|l| Hand::from_line2(l))
+        .map(Hand::from_line2)
         .collect()
 }
