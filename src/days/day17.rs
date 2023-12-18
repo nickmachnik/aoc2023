@@ -1,5 +1,8 @@
 use crate::{Solution, SolutionPair};
-use std::{collections::HashSet, fs::read_to_string};
+use std::{
+    collections::{BinaryHeap, HashMap},
+    fs::read_to_string,
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -10,7 +13,7 @@ const MAX_STRT_ULTRA: u8 = 10;
 
 pub fn solve() -> SolutionPair {
     // Your solution here...
-    let sol1: u64 = solve1("./input/day17example1.txt");
+    let sol1: u64 = solve1("./input/day17input.txt");
     let sol2: u64 = solve2("./input/day17input.txt");
 
     (Solution::from(sol1), Solution::from(sol2))
@@ -18,15 +21,15 @@ pub fn solve() -> SolutionPair {
 
 fn solve1(filename: &str) -> u64 {
     let map = load_map(filename);
-    cheapest_path(&map) as u64
+    cheapest_path(&map, Node::valid_neighbors) as u64
 }
 
 fn solve2(filename: &str) -> u64 {
     let map = load_map(filename);
-    cheapest_path_ultra(&map) as u64
+    cheapest_path(&map, Node::valid_neighbors_ultra) as u64
 }
 
-#[derive(PartialEq, Default, Debug, Clone, Copy, Hash, Eq)]
+#[derive(PartialEq, Default, Debug, Clone, Copy, Hash, Eq, PartialOrd, Ord)]
 enum Direction {
     Up,
     Down,
@@ -36,7 +39,7 @@ enum Direction {
     None,
 }
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 struct NodeSig {
     in_dir: Direction,
     row: usize,
@@ -44,13 +47,28 @@ struct NodeSig {
     straight_count: u8,
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Node {
     cumsum: u32,
     straight_count: u8,
     in_dir: Direction,
     row: usize,
     col: usize,
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .cumsum
+            .cmp(&self.cumsum)
+            .then_with(|| self.signature().cmp(&other.signature()))
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Node {
@@ -214,10 +232,11 @@ impl Node {
     }
 }
 
-fn cheapest_path(map: &Map) -> u32 {
-    let mut front: Vec<Node> = Vec::new();
-    let mut new_front: Vec<Node> = Vec::new();
-    let mut visited: HashSet<NodeSig> = HashSet::new();
+fn cheapest_path<F>(map: &Map, neighbor_fn: F) -> u32
+where
+    F: Fn(&Node, &Map) -> Vec<Node>,
+{
+    let mut front: BinaryHeap<Node> = BinaryHeap::new();
     let init_node = Node {
         // do not include first blocks heat loss
         cumsum: 0,
@@ -228,81 +247,25 @@ fn cheapest_path(map: &Map) -> u32 {
     };
     front.push(init_node);
 
-    loop {
-        let mut min_cost = u32::MAX;
-        let mut next_node = Node::default();
-        while let Some(node) = front.pop() {
-            let neighbors = node.valid_neighbors(map);
-            let mut any_not_visited = false;
-            for n in neighbors {
-                if visited.contains(&n.signature()) {
+    let mut costs: HashMap<NodeSig, u32> = HashMap::new();
+
+    while let Some(node) = front.pop() {
+        if node.is_exit(map) {
+            return node.cumsum;
+        }
+        for n in neighbor_fn(&node, map) {
+            let cost = n.cumsum;
+            if let Some(&v) = costs.get(&n.signature()) {
+                if v < cost {
                     continue;
                 }
-                any_not_visited = true;
-                let cost = n.cumsum;
-                if cost < min_cost {
-                    min_cost = cost;
-                    next_node = n;
-                }
             }
-            if any_not_visited {
-                new_front.push(node);
-            }
-        }
-        // println!("{:?}", next_node);
-        if next_node.is_exit(map) {
-            return next_node.cumsum;
-        }
-        new_front.push(next_node);
-        visited.insert(next_node.signature());
-        front = new_front;
-        new_front = Vec::new();
-    }
-}
 
-fn cheapest_path_ultra(map: &Map) -> u32 {
-    let mut front: Vec<Node> = Vec::new();
-    let mut new_front: Vec<Node> = Vec::new();
-    let mut visited: HashSet<NodeSig> = HashSet::new();
-    let init_node = Node {
-        // do not include first blocks heat loss
-        cumsum: 0,
-        straight_count: 0,
-        in_dir: Direction::None,
-        row: 0,
-        col: 0,
-    };
-    front.push(init_node);
-
-    loop {
-        let mut min_cost = u32::MAX;
-        let mut next_node = Node::default();
-        while let Some(node) = front.pop() {
-            let neighbors = node.valid_neighbors_ultra(map);
-            let mut any_not_visited = false;
-            for n in neighbors {
-                if visited.contains(&n.signature()) {
-                    continue;
-                }
-                any_not_visited = true;
-                let cost = n.cumsum;
-                if cost < min_cost {
-                    min_cost = cost;
-                    next_node = n;
-                }
-            }
-            if any_not_visited {
-                new_front.push(node);
-            }
+            costs.insert(n.signature(), cost);
+            front.push(n);
         }
-        if next_node.is_exit(map) && next_node.straight_count >= MIN_STRT_ULTRA {
-            return next_node.cumsum;
-        }
-        new_front.push(next_node);
-        visited.insert(next_node.signature());
-        front = new_front;
-        new_front = Vec::new();
     }
+    0
 }
 
 fn load_map(filename: &str) -> Map {
